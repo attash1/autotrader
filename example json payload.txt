@@ -1,0 +1,18 @@
+TradingView Message
+{
+    "ticker": "{{ticker}}",
+    "order_action": "{{strategy.order.action}}",
+}
+
+
+
+
+
+
+
+Example Filled
+
+{
+    "ticker": "AAPL",
+    "order_action": "sell"
+}
