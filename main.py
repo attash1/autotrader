@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from flask import Flask, request
+from flask import Flask, request, abort
 import ngrok, os, time
 
 from alpaca.trading.client import TradingClient
@@ -27,9 +27,12 @@ def test_func():
 @app.route('/', methods=['POST'])
 def webhook_response():
     account = trading_client.get_account()
-
-
     trade_info = request.json
+
+    #prevents requests not originating from you
+    if trade_info.get('secret') is None or trade_info['secret'] != os.getenv("WEBHOOK_SECRET"):
+        abort(403)
+
     if trade_info['order_action'] == 'buy':
         try:
             buy_data = buy_setup(trade_info, account)
@@ -45,9 +48,14 @@ def webhook_response():
 
             #returns information about completed order
             if updated_buy_order.status == 'filled':
-                return f"{updated_buy_order.filled_qty} orders of {buy_order.symbol} filled at avg price of {updated_buy_order.filled_avg_price}"
+                return_msg = f"{updated_buy_order.filled_qty} orders of {buy_order.symbol} filled at avg price of {updated_buy_order.filled_avg_price}"
+            elif updated_buy_order.status == 'accepted':
+                return_msg = "Market is currently closed. Order will not be executed"
+                trading_client.cancel_order_by_id(buy_order.id)
             else:
-                return f"Buy order status: {updated_buy_order.status}"
+                return_msg = f"Buy order status: {updated_buy_order.status}"
+
+            return return_msg
 
         except alpaca.common.exceptions.APIError as error:
             return error.message
@@ -68,9 +76,14 @@ def webhook_response():
 
             # returns information about completed order
             if updated_sell_order.status == 'filled':
-                return f"{updated_sell_order.filled_qty} orders of {sell_order.symbol} sold at avg price of {updated_sell_order.filled_avg_price}"
+                return_msg = f"{updated_sell_order.filled_qty} orders of {sell_order.symbol} sold at avg price of {updated_sell_order.filled_avg_price}"
+            elif updated_sell_order.status == 'accepted':
+                return_msg = "Market is currently closed. Order will not be executed"
+                trading_client.cancel_order_by_id(sell_order.id)
             else:
-                return f"Sell order status: {updated_sell_order.status}"
+                return_msg = f"Sell order status: {updated_sell_order.status}"
+
+            return return_msg
 
         except alpaca.common.exceptions.APIError as error:
             return error.message
@@ -82,7 +95,7 @@ def webhook_response():
 def buy_setup(trade_info, user_account) -> MarketOrderRequest: #purchases 5% of the account's balance worth of a security
     buy_order_data = MarketOrderRequest(
         symbol=trade_info['ticker'],
-        notional=500,#round(float(user_account.equity) * 0.05, 2),
+        notional=round(float(user_account.equity) * 0.05, 2),
         side=OrderSide.BUY,
         time_in_force=TimeInForce.DAY,
     )
@@ -105,6 +118,7 @@ def sell_setup(trade_info) -> MarketOrderRequest:
 
 if __name__ == '__main__':
     app.run(port=80)
+
 
 
 

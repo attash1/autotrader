@@ -1,3 +1,4 @@
 NGROK_AUTHTOKEN = <your ngrok authtoken>
 API_KEY_ID = <alpaca api key>
 API_KEY_SECRET = <alpaca api key secret>
+WEBHOOK_SECRET= <a secret string>

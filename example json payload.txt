@@ -2,6 +2,7 @@ TradingView Message
 {
     "ticker": "{{ticker}}",
     "order_action": "{{strategy.order.action}}",
+    "secret": <your secret>
 }
 
 
@@ -14,5 +15,6 @@ Example Filled
 
 {
     "ticker": "AAPL",
-    "order_action": "sell"
+    "order_action": "sell",
+    "secret": "Y0t88e4KsdvzGLmvpGvy"
 }
